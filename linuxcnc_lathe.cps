@@ -2,22 +2,17 @@
   Copyright (C) 2012-2015 by Autodesk, Inc.
   All rights reserved.
 
-  Tormach Lathe post processor configuration.
+  LinuxCNC Lathe post processor configuration.
 
-  $Revision: 41326 76334575b07ce60073005dd84b872c19885d2939 $
-  $Date: 2017-02-08 16:40:33 $
-  
-  FORKID {48DD016C-7FF3-4C9C-8CEE-15595E65F75F}
 */
 
-description = "LinuxCNC";
-vendor = "LinuxCNC";
-vendorUrl = "http://www.tormach.com";
-legal = "Copyright (C) 2012-2015 by Autodesk, Inc.";
+description = "LinuxCNC lathe postprocessor";
+vendor = "Viljo Marrandi";
+vendorUrl = "http://www.autodesk.com";
+legal = "Copyright (C) 2012-2017 by Autodesk, Inc.";
 certificationLevel = 2;
-minimumRevision = 24000;
 
-longDescription = "Turning post for Tormach Slant-PRO.";
+longDescription = "Turning post for LinuxCNC.";
 
 extension = "ngc";
 programNameIsInteger = false;
