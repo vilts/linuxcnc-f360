@@ -35,7 +35,7 @@ allowedCircularPlanes = undefined; // allow any circular motion
 properties = {
   writeMachine: false, // write machine
   preloadTool: false, // preloads next tool on tool change if any
-  showSequenceNumbers: true, // show sequence numbers
+  showSequenceNumbers: false, // show sequence numbers
   sequenceNumberStart: 10, // first sequence number
   sequenceNumberIncrement: 1, // increment for sequence numbers
   optionalStop: true, // optional stop
@@ -44,9 +44,7 @@ properties = {
   maximumSpindleSpeed: 3500, // specifies the maximum spindle speed, 5C high speed 3500rpm, D1-4 low speed 2500rpm
   showNotes: false, // specifies that operation notes should be output.
   useGangTooling: false, // specifies if gang tooling should be used, if yes X is scaled with -2.
-  useQCTP: false, // specifies if the machine has Quick Change Tool Post Set installed or not, if yes it will scale X with -2.
-
-  debugOutput: true
+  useQCTP: false // specifies if the machine has Quick Change Tool Post Set installed or not, if yes it will scale X with -2.
 };
 
 
@@ -62,7 +60,7 @@ var yFormat = createFormat({decimals:(unit == MM ? 3 : 4), forceDecimal:true});
 var zFormat = createFormat({decimals:(unit == MM ? 3 : 4), forceDecimal:true});
 var rFormat = createFormat({decimals:(unit == MM ? 3 : 4), forceDecimal:true}); // radius
 var feedFormat = createFormat({decimals:(unit == MM ? 4 : 5), forceDecimal:true});
-var toolFormat = createFormat({decimals:0, width:4, zeropad:true});
+var toolFormat = createFormat({decimals:0});
 var rpmFormat = createFormat({decimals:0});
 var secFormat = createFormat({decimals:3, forceDecimal:true}); // seconds - range 0.001-99999.999
 var milliFormat = createFormat({decimals:0}); // milliseconds // range 1-9999
@@ -102,10 +100,10 @@ var optionalSection = false;
 var forceSpindleSpeed = false;
 var currentFeedId;
 
-// VILTS:
+// Threading formats and outputs
 var pFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // thread pitch
-var iThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // thread offset fro drive line
-var jThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // thread initial thread depth
+var iThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // thread offset from drive line
+var jThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // initial thread depth
 var kThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false, scale:2 }); // thread depth, diameter mode
 var rThreadFormat = createFormat({decimals:1, forceDecimal:false, zeropad:true});
 var qThreadFormat = createFormat({decimals:1, forceDecimal:false, zeropad:true});
@@ -378,7 +376,7 @@ function onSection() {
       error(localize("Compensation offset is out of range."));
       return;
     }
-    writeBlock("T" + toolFormat.format(tool.number * 100 + compensationOffset));
+    writeBlock("T" + toolFormat.format(tool.number), mFormat.format(6), gFormat.format(43));
     if (tool.comment) {
       writeComment(tool.comment);
     }
@@ -391,7 +389,7 @@ function onSection() {
           error(localize("Compensation offset is out of range."));
           return;
         }
-        writeBlock("T" + toolFormat.format(nextTool.number * 100 + compensationOffset));
+        writeBlock("T" + toolFormat.format(nextTool.number), mFormat.format(6), gFormat.format(43));
       } else {
         // preload first tool
         var section = getSection(0);
@@ -402,7 +400,7 @@ function onSection() {
             error(localize("Compensation offset is out of range."));
             return;
           }
-          writeBlock("T" + toolFormat.format(firstTool.number * 100 + compensationOffset));
+          writeBlock("T" + toolFormat.format(firstTool.number), mFormat.format(6), gFormat.format(43));
         }
       }
     }
@@ -634,26 +632,21 @@ function getCommonCycle(x, y, z, r) {
 }
 
 function onCyclePoint(x, y, z) {
-  if (isSameDirection(currentSection.workPlane.forward, new Vector(0, 0, 1)) ||
+  /* if (isSameDirection(currentSection.workPlane.forward, new Vector(0, 0, 1)) ||
       isSameDirection(currentSection.workPlane.forward, new Vector(0, 0, -1))) {
     writeBlock(gPlaneModal.format(17)); // XY plane
   } else {
     expandCyclePoint(x, y, z);
     return;
-  }
+  } */
 
   switch (cycleType) {
   case "thread-turning":
     if (!isLastCyclePoint()) 
       return;
-    var r = -cycle.incrementalX; // positive if taper goes down - delta radius
-    var threadsPerInch = 1.0/cycle.pitch; // per mm for metric
+
+    var threadsPerInch = 1.0 / cycle.pitch; // per mm for metric
     var p = 1/threadsPerInch;
-
-
-    // writeComment("TURNING MODE - " + turningMode);
-    writeComment("OUTER RADIUS - "+ getParameter("operation:outerRadius_value"));
-
     var threadDepth = getParameter("operation:threadDepth");
 
     // The thread peak offset from the drive line. Negative I values are external threads, and positive
@@ -661,28 +654,24 @@ function onCyclePoint(x, y, z) {
     var peakOffset = (getParameter("operation:outerClearance_value") * 2) - ((x * 2)+ (threadDepth * 2));
     peakOffset = (getParameter("operation:turningMode") === "outer") ? -peakOffset : peakOffset;
 
-    var initialDepth = threadDepth / getParameter("operation:numberOfStepdowns");
+    // initialDepth, double it for diameter mode
+    var initialDepth = (threadDepth / getParameter("operation:numberOfStepdowns")) * 2;
     // Infeed Mode:
     //   - constant: R1 (same depth for every pass)
     //   - reduced:  R2 (constant area)
-    var depthRegression = getParameter("operation:infeedMode") === 'constant' ? 1 : 2;
-
-    writeComment("CLEARANCE VALUE - " + getParameter("operation:outerClearance_value"));
-    writeComment("THREAD DEPTH - " + threadDepth);
-    writeComment("X - " + x);
+    // Choosing some reasonable non R2 for constant area
+    var depthRegression = getParameter("operation:infeedMode") === 'constant' ? 1 : 1.25;
 
     writeBlock(
       gMotionModal.format(76),
       pOutput.format(p),                      // pitch, distance per revolution
       zOutput.format(z),                      // final Z position of threads
       iThreadOutput.format(peakOffset),       // peak offset from drive line
-      jThreadOutput.format(initialDepth),      // initial cut depth
+      jThreadOutput.format(initialDepth),     // initial cut depth
       kThreadOutput.format(threadDepth),      // full thread depth
       rThreadOutput.format(depthRegression),  // depth regression
       qThreadOutput.format(getParameter("operation:infeedAngle")), // infeed angle
       hThreadOutput.format(getParameter("operation:nullPass"))     // spring pass
-      // conditional(zFormat.isSignificant(r), g92ROutput.format(r)),
-
     );
     return;
   }
