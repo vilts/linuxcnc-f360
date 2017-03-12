@@ -331,7 +331,7 @@ function onSection() {
   if (insertToolCall || newSpindle || newWorkOffset) {
     // retract to safe plane
     retracted = true;
-    writeBlock(gFormat.format(30), "Z#5422"); // retract/park
+    // writeBlock(gFormat.format(30), "Z#5422"); // retract/park
     forceXYZ();
   }
 
@@ -658,9 +658,10 @@ function onCyclePoint(x, y, z) {
 
     // The thread peak offset from the drive line. Negative I values are external threads, and positive
     // I values are internal threads. Generally the material has been turned to this size before the G76 cycle.
-    var iVal = (getParameter("operation:outerClearance_value") * 2) - ((x * 2)+ (threadDepth * 2));
-    iVal = (getParameter("operation:turningMode") === "outer") ? -iVal : iVal;
+    var peakOffset = (getParameter("operation:outerClearance_value") * 2) - ((x * 2)+ (threadDepth * 2));
+    peakOffset = (getParameter("operation:turningMode") === "outer") ? -peakOffset : peakOffset;
 
+    var initialDepth = threadDepth / getParameter("operation:numberOfStepdowns");
     // Infeed Mode:
     //   - constant: R1 (same depth for every pass)
     //   - reduced:  R2 (constant area)
@@ -672,14 +673,14 @@ function onCyclePoint(x, y, z) {
 
     writeBlock(
       gMotionModal.format(76),
-      pOutput.format(p),
-      zOutput.format(z),
-      iThreadOutput.format(iVal),
-      jThreadOutput.format(threadDepth),
-      kThreadOutput.format(threadDepth),
-      rThreadOutput.format(depthRegression),
-      qThreadOutput.format(getParameter("operation:infeedAngle")),
-      hThreadOutput.format(getParameter("operation:nullPass"))
+      pOutput.format(p),                      // pitch, distance per revolution
+      zOutput.format(z),                      // final Z position of threads
+      iThreadOutput.format(peakOffset),       // peak offset from drive line
+      jThreadOutput.format(initialDepth),      // initial cut depth
+      kThreadOutput.format(threadDepth),      // full thread depth
+      rThreadOutput.format(depthRegression),  // depth regression
+      qThreadOutput.format(getParameter("operation:infeedAngle")), // infeed angle
+      hThreadOutput.format(getParameter("operation:nullPass"))     // spring pass
       // conditional(zFormat.isSignificant(r), g92ROutput.format(r)),
 
     );
@@ -897,7 +898,7 @@ function onClose() {
   onCommand(COMMAND_STOP_SPINDLE);
 
   // we might want to retract in Z before X
-  writeBlock(gFormat.format(30), "Z#5422"); // retract/park
+  // writeBlock(gFormat.format(30), "Z#5422"); // retract/park
 
   forceXYZ();
   if (!machineConfiguration.hasHomePositionX() && !machineConfiguration.hasHomePositionY()) {
