@@ -104,18 +104,20 @@ var currentFeedId;
 
 // VILTS:
 var pFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // thread pitch
-var qThreadFormat = createFormat({decimals:1, forceDecimal:false, zeropad:true}); // infeed angle Q
 var iThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // thread offset fro drive line
 var jThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // thread initial thread depth
 var kThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false, scale:2 }); // thread depth, diameter mode
+var rThreadFormat = createFormat({decimals:1, forceDecimal:false, zeropad:true});
+var qThreadFormat = createFormat({decimals:1, forceDecimal:false, zeropad:true});
+var hThreadFormat = createFormat({decimals:0});
 
+var pOutput = createVariable({prefix:"P", force:true}, pFormat);
 var iThreadOutput = createVariable({prefix:"I", force:true}, iThreadFormat);
 var jThreadOutput = createVariable({prefix:"J", force:true}, jThreadFormat);
 var kThreadOutput = createVariable({prefix:"K", force:true}, kThreadFormat);
-var pOutput = createVariable({prefix:"P", force:true}, pFormat);
+var rThreadOutput = createVariable({prefix:"R", force:true}, rThreadFormat);
 var qThreadOutput = createVariable({prefix:"Q", force:true}, qThreadFormat);
-
-
+var hThreadOutput = createVariable({prefix:"H", force:true}, hThreadFormat);
 
 /**
   Writes the specified block.
@@ -647,25 +649,22 @@ function onCyclePoint(x, y, z) {
     var r = -cycle.incrementalX; // positive if taper goes down - delta radius
     var threadsPerInch = 1.0/cycle.pitch; // per mm for metric
     var p = 1/threadsPerInch;
-    var turningMode;
 
-    if (getParameter("operation:turningMode") === "outer") 
-    {
-      turningMode = 'outer';
-    } else {
-      turningMode = 'inner';
-    }
 
     // writeComment("TURNING MODE - " + turningMode);
     writeComment("OUTER RADIUS - "+ getParameter("operation:outerRadius_value"));
 
     var threadDepth = getParameter("operation:threadDepth");
-    var qVal = getParameter("operation:infeedAngle");
 
     // The thread peak offset from the drive line. Negative I values are external threads, and positive
     // I values are internal threads. Generally the material has been turned to this size before the G76 cycle.
     var iVal = (getParameter("operation:outerClearance_value") * 2) - ((x * 2)+ (threadDepth * 2));
-    iVal = (turningMode === 'outer') ? -iVal : iVal;
+    iVal = (getParameter("operation:turningMode") === "outer") ? -iVal : iVal;
+
+    // Infeed Mode:
+    //   - constant: R1 (same depth for every pass)
+    //   - reduced:  R2 (constant area)
+    var depthRegression = getParameter("operation:infeedMode") === 'constant' ? 1 : 2;
 
     writeComment("CLEARANCE VALUE - " + getParameter("operation:outerClearance_value"));
     writeComment("THREAD DEPTH - " + threadDepth);
@@ -678,7 +677,9 @@ function onCyclePoint(x, y, z) {
       iThreadOutput.format(iVal),
       jThreadOutput.format(threadDepth),
       kThreadOutput.format(threadDepth),
-      qThreadOutput.format(qVal)      
+      rThreadOutput.format(depthRegression),
+      qThreadOutput.format(getParameter("operation:infeedAngle")),
+      hThreadOutput.format(getParameter("operation:nullPass"))
       // conditional(zFormat.isSignificant(r), g92ROutput.format(r)),
 
     );
