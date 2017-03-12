@@ -56,6 +56,7 @@ var mFormat = createFormat({prefix:"M", decimals:1, zeropad:true});
 
 var spatialFormat = createFormat({decimals:(unit == MM ? 3 : 4), forceDecimal:true});
 var xFormat = createFormat({decimals:(unit == MM ? 3 : 4), forceDecimal:true, scale:2}); // diameter mode
+var irFormat = createFormat({decimals:(unit == MM ? 3 : 4), forceDecimal:true});
 var yFormat = createFormat({decimals:(unit == MM ? 3 : 4), forceDecimal:true});
 var zFormat = createFormat({decimals:(unit == MM ? 3 : 4), forceDecimal:true});
 var rFormat = createFormat({decimals:(unit == MM ? 3 : 4), forceDecimal:true}); // radius
@@ -75,6 +76,7 @@ var sOutput = createVariable({prefix:"S", force:true}, rpmFormat);
 // circular output
 var kOutput = createReferenceVariable({prefix:"K"}, zFormat);
 var iOutput = createReferenceVariable({prefix:"I"}, xFormat); // diameter mode
+var irOutput = createReferenceVariable({prefix:"I"}, irFormat); // radius mode for G2/G3 I variable
 
 var g92ROutput = createVariable({prefix:"R"}, zFormat); // no scaling
 
@@ -205,9 +207,9 @@ function onOpen() {
     }
   }
 
-  writeBlock(gFormat.format(7)); // Diameter mode
+  writeBlock(gFormat.format(7));      // Diameter mode
   writeBlock(gPlaneModal.format(18)); // XZ plane
-  writeBlock(gFormat.format(90)); // Absolute mode
+  writeBlock(gFormat.format(90));     // Absolute mode
 
   switch (unit) {
   case IN:
@@ -589,13 +591,20 @@ function onCircular(clockwise, cx, cy, cz, x, y, z, feed) {
   } else if (!properties.useRadius) {
     switch (getCircularPlane()) {
     case PLANE_XY:
-      writeBlock(gAbsIncModal.format(90), gPlaneModal.format(17), gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), iOutput.format(cx - start.x, 0), jOutput.format(cy - start.y, 0), getFeed(feed));
+      error(localize("XY plane not allowed"));
       break;
+
     case PLANE_ZX:
-      writeBlock(gAbsIncModal.format(90), gPlaneModal.format(18), gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), iOutput.format(cx - start.x, 0), kOutput.format(cz - start.z, 0), getFeed(feed));
+      writeBlock(gMotionModal.format(clockwise ? 2 : 3),
+                 xOutput.format(x),
+                 yOutput.format(y),
+                 zOutput.format(z),
+                 irOutput.format(cx - start.x, 0),
+                 kOutput.format(cz - start.z, 0),
+                 getFeed(feed));
       break;
     case PLANE_YZ:
-      writeBlock(gAbsIncModal.format(90), gPlaneModal.format(19), gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), jOutput.format(cy - start.y, 0), kOutput.format(cz - start.z, 0), getFeed(feed));
+      error(localize("XZ plane not allowed"));
       break;
     default:
       linearize(tolerance);
@@ -619,6 +628,18 @@ function onCircular(clockwise, cx, cy, cz, x, y, z, feed) {
       linearize(tolerance);
     }
   }
+}
+
+function _getTrueX( _x ) {
+    var ti = g_tooling.getToolInfo(  getCurrentSectionId( ) );
+    
+    if ( ti.toolCuttingDir == toolType.XPLUS )
+        return _x;
+    
+    if ( g_tooling.hasXMinusTools( ) || properties.using_GangTooling )
+        _x = -_x;
+    
+    return _x;
 }
 
 function onCycle() {
