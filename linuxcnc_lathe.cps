@@ -593,15 +593,8 @@ function onCircular(clockwise, cx, cy, cz, x, y, z, feed) {
     case PLANE_XY:
       error(localize("XY plane not allowed"));
       break;
-
     case PLANE_ZX:
-      writeBlock(gMotionModal.format(clockwise ? 2 : 3),
-                 xOutput.format(x),
-                 yOutput.format(y),
-                 zOutput.format(z),
-                 irOutput.format(cx - start.x, 0),
-                 kOutput.format(cz - start.z, 0),
-                 getFeed(feed));
+      writeBlock(gMotionModal.format(clockwise ? 2 : 3), xOutput.format(x), yOutput.format(y), zOutput.format(z), irOutput.format(cx - start.x, 0), kOutput.format(cz - start.z, 0), getFeed(feed));
       break;
     case PLANE_YZ:
       error(localize("XZ plane not allowed"));
@@ -628,18 +621,6 @@ function onCircular(clockwise, cx, cy, cz, x, y, z, feed) {
       linearize(tolerance);
     }
   }
-}
-
-function _getTrueX( _x ) {
-    var ti = g_tooling.getToolInfo(  getCurrentSectionId( ) );
-    
-    if ( ti.toolCuttingDir == toolType.XPLUS )
-        return _x;
-    
-    if ( g_tooling.hasXMinusTools( ) || properties.using_GangTooling )
-        _x = -_x;
-    
-    return _x;
 }
 
 function onCycle() {
