@@ -9,9 +9,9 @@ Based on Tormach Slant-PRO PP.
    Intermediate file with export log is somewhere like this `C:\Users\<username>\AppData\Local\Temp\Fusion360CAM\1` with .cnc extension.
 2. Locate `post.exe`, probably somewhere like `C:\Users\<username>\AppData\Local\Autodesk\webdeploy\production\f9042f554b0a0c3d14c46a7d9f3679baf42fdd2d\Applications\CAM360>`
 3. Test by executing:
-  `<post.exe> <processor.cps> <intermediate_file.cnc> --property unit MM --verbose` 
+  `<post.exe> <processor.cps> <intermediate_file.cnc> --property unit MM --verbose`
 
->`C:\Users\vilts\AppData\Local\Autodesk\webdeploy\production\f9042f554b0a0c3d14c46a7d9f3679baf42fdd2d\Applications\CAM360\post.exe "C:\Dropbox\Misc projects\linuxcnc-f360\linuxcnc_lathe.cps"  "C:\Users\vilts\AppData\Local\Temp\Fusion360CAM\1\post_devel.cnc" --property unit MM --verbose`
+>`C:\Users\vilts\AppData\Local\Autodesk\webdeploy\production\110e62f27b395d1e77f65827ad98f9392983e959\Applications\CAM360\post.exe "C:\Dropbox\Misc projects\linuxcnc-f360\linuxcnc_lathe.cps"  "C:\Users\vilts\AppData\Local\Temp\Fusion360CAM\1\post_devel.cnc" --property unit MM --verbose`
 
 ## Resources
 1. AutoDesk CAM - [http://cam.autodesk.com/posts/reference/index.html](http://cam.autodesk.com/posts/reference/index.html)

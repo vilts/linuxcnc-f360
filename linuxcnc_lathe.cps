@@ -103,10 +103,10 @@ var forceSpindleSpeed = false;
 var currentFeedId;
 
 // Threading formats and outputs
-var pFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // thread pitch
+var pFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false});       // thread pitch
 var iThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // thread offset from drive line
 var jThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // initial thread depth
-var kThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false, scale:2 }); // thread depth, diameter mode
+var kThreadFormat = createFormat({decimals:(unit === MM ? 3 : 4), forceDecimal:false}); // thread depth, diameter mode
 var rThreadFormat = createFormat({decimals:1, forceDecimal:false, zeropad:true});
 var qThreadFormat = createFormat({decimals:1, forceDecimal:false, zeropad:true});
 var hThreadFormat = createFormat({decimals:0});
@@ -174,7 +174,7 @@ function onOpen() {
   }
 
   yOutput.disable();
-  
+
   if (!properties.separateWordsWithSpace) {
     setWordSeparator("");
   }
@@ -318,11 +318,11 @@ function onSection() {
   optionalSection = currentSection.isOptional();
 
   var turning = (currentSection.getType() == TYPE_TURNING);
-  
+
   var insertToolCall = forceToolAndRetract || isFirstSection() ||
     currentSection.getForceToolChange && currentSection.getForceToolChange() ||
     (tool.number != getPreviousSection().getTool().number);
-  
+
   var retracted = false; // specifies that the tool has been retracted to the safe plane
   var newSpindle = isFirstSection() ||
     (getPreviousSection().spindle != currentSection.spindle);
@@ -343,7 +343,7 @@ function onSection() {
       writeComment(comment);
     }
   }
-  
+
   if (properties.showNotes && hasParameter("notes")) {
     var notes = getParameter("notes");
     if (notes) {
@@ -364,7 +364,7 @@ function onSection() {
     onCommand(COMMAND_STOP_SPINDLE);
     onCommand(COMMAND_OPTIONAL_STOP);
   }
-  
+
   if (insertToolCall) {
     retracted = true;
     onCommand(COMMAND_COOLANT_OFF);
@@ -436,7 +436,7 @@ function onSection() {
   gMotionModal.reset();
 
   var mSpindle = tool.clockwise ? 3 : 4;
-  
+
   gSpindleModeModal.reset();
   if (currentSection.getTool().getSpindleMode() == SPINDLE_CONSTANT_SURFACE_SPEED) {
     var maximumSpindleSpeed = (tool.maximumSpindleSpeed > 0) ? Math.min(tool.maximumSpindleSpeed, properties.maximumSpindleSpeed) : properties.maximumSpindleSpeed;
@@ -444,14 +444,14 @@ function onSection() {
   } else {
     writeBlock(gSpindleModeModal.format(97), sOutput.format(tool.spindleRPM), mFormat.format(mSpindle));
   }
-  
+
   gFeedModeModal.reset();
   if (currentSection.feedMode == FEED_PER_REVOLUTION) {
     writeBlock(gFeedModeModal.format(95));
   } else {
     writeBlock(gFeedModeModal.format(94));
   }
-  
+
   setRotation(currentSection.workPlane);
 
   var initialPosition = getFramePosition(currentSection.getInitialPosition());
@@ -562,7 +562,7 @@ function onCircular(clockwise, cx, cy, cz, x, y, z, feed) {
     error(localize("Speed-feed synchronization is not supported for circular moves."));
     return;
   }
-  
+
   if (pendingRadiusCompensation >= 0) {
     error(localize("Radius compensation cannot be activated/deactivated for a circular move."));
     return;
@@ -644,7 +644,7 @@ function onCyclePoint(x, y, z) {
 
   switch (cycleType) {
   case "thread-turning":
-    if (!isLastCyclePoint()) 
+    if (!isLastCyclePoint()) // generate G76 threading code on last cycle point
       return;
 
     var threadsPerInch = 1.0 / cycle.pitch; // per mm for metric
@@ -695,7 +695,7 @@ function onCyclePoint(x, y, z) {
     }
 
     repositionToCycleClearance(cycle, x, y, z);
-    
+
     // return to initial Z which is clearance plane and set absolute mode
 
     var F = cycle.feedrate;
@@ -775,7 +775,7 @@ function setCoolant(coolant) {
     onUnsupportedCoolant(coolant);
     m = 9;
   }
-  
+
   if (m) {
     writeBlock(mFormat.format(m));
     currentCoolantMode = coolant;
@@ -874,7 +874,7 @@ function onSectionEnd() {
        (getParameter("operation-strategy") == "turningPart"))) {
     // deactivate part catcher here
   }
-  
+
   if (hasParameter("operation-strategy") && (getParameter("operation-strategy") == "turningPart")) {
     // handle parting here if desired
   }
