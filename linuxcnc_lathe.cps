@@ -29,8 +29,6 @@ maximumCircularSweep = toRad(359);
 allowHelicalMoves = true;
 allowedCircularPlanes = undefined; // allow any circular motion
 
-
-
 // user-defined properties
 properties = {
   writeMachine: false, // write machine
@@ -46,7 +44,6 @@ properties = {
   useGangTooling: false, // specifies if gang tooling should be used, if yes X is scaled with -2.
   useQCTP: false // specifies if the machine has Quick Change Tool Post Set installed or not, if yes it will scale X with -2.
 };
-
 
 
 var permittedCommentChars = " ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.,=_-";
@@ -643,39 +640,45 @@ function onCyclePoint(x, y, z) {
   } */
 
   switch (cycleType) {
-  case "thread-turning":
-    if (!isLastCyclePoint()) // generate G76 threading code on last cycle point
+    case "thread-turning":
+      if (!isLastCyclePoint()) // generate G76 threading code on last cycle point
+        return;
+
+      var threadsPerInch = 1.0 / cycle.pitch; // per mm for metric
+      var p = 1/threadsPerInch;
+      var threadDepth = getParameter("operation:threadDepth");
+
+      // The thread peak offset from the drive line. Negative I values are external threads, and positive
+      // I values are internal threads. Generally the material has been turned to this size before the G76 cycle.
+      var peakOffset = 0;
+
+      if (getParameter("operation:turningMode") === "outer") {
+        // peakOffset = -((getParameter("operation:outerClearance_value") * 2) - ((x * 2) + (threadDepth * 2)));
+        peakOffset = -(getParameter("operation:outerClearance_offset"));
+      } else {
+        peakOffset = getParameter("operation:innerClearance_value");
+      }
+      
+      // initialDepth, double it for diameter mode
+      var initialDepth = (getParameter("operation:numberOfStepdowns") == 1 ? threadDepth*0.9 : (threadDepth / getParameter("operation:numberOfStepdowns")) * 2);
+      // Infeed Mode:
+      //   - constant: R1 (same depth for every pass)
+      //   - reduced:  R2 (constant area)
+      // Choosing some reasonable non R2 for constant area
+      var depthRegression = getParameter("operation:infeedMode") === 'constant' ? 1 : 1.25;
+
+      writeBlock(
+        gMotionModal.format(76),
+        pOutput.format(p),                      // pitch, distance per revolution
+        zOutput.format(z),                      // final Z position of threads
+        iThreadOutput.format(peakOffset),       // peak offset from drive line
+        jThreadOutput.format(initialDepth),     // initial cut depth
+        kThreadOutput.format(threadDepth),      // full thread depth
+        rThreadOutput.format(depthRegression),  // depth regression
+        qThreadOutput.format(getParameter("operation:infeedAngle")), // infeed angle
+        hThreadOutput.format(getParameter("operation:nullPass"))     // spring pass
+      );
       return;
-
-    var threadsPerInch = 1.0 / cycle.pitch; // per mm for metric
-    var p = 1/threadsPerInch;
-    var threadDepth = getParameter("operation:threadDepth");
-
-    // The thread peak offset from the drive line. Negative I values are external threads, and positive
-    // I values are internal threads. Generally the material has been turned to this size before the G76 cycle.
-    var peakOffset = (getParameter("operation:outerClearance_value") * 2) - ((x * 2)+ (threadDepth * 2));
-    peakOffset = (getParameter("operation:turningMode") === "outer") ? -peakOffset : peakOffset;
-
-    // initialDepth, double it for diameter mode
-    var initialDepth = (threadDepth / getParameter("operation:numberOfStepdowns")) * 2;
-    // Infeed Mode:
-    //   - constant: R1 (same depth for every pass)
-    //   - reduced:  R2 (constant area)
-    // Choosing some reasonable non R2 for constant area
-    var depthRegression = getParameter("operation:infeedMode") === 'constant' ? 1 : 1.25;
-
-    writeBlock(
-      gMotionModal.format(76),
-      pOutput.format(p),                      // pitch, distance per revolution
-      zOutput.format(z),                      // final Z position of threads
-      iThreadOutput.format(peakOffset),       // peak offset from drive line
-      jThreadOutput.format(initialDepth),     // initial cut depth
-      kThreadOutput.format(threadDepth),      // full thread depth
-      rThreadOutput.format(depthRegression),  // depth regression
-      qThreadOutput.format(getParameter("operation:infeedAngle")), // infeed angle
-      hThreadOutput.format(getParameter("operation:nullPass"))     // spring pass
-    );
-    return;
   }
 
   if (isFirstCyclePoint()) {
