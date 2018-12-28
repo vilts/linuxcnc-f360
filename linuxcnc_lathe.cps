@@ -653,10 +653,9 @@ function onCyclePoint(x, y, z) {
       var peakOffset = 0;
 
       if (getParameter("operation:turningMode") === "outer") {
-        // peakOffset = -((getParameter("operation:outerClearance_value") * 2) - ((x * 2) + (threadDepth * 2)));
-        peakOffset = -(getParameter("operation:outerClearance_offset"));
+        peakOffset = -((getParameter("operation:outerClearance_value") * 2) - ((x * 2) + threadDepth));
       } else {
-        peakOffset = getParameter("operation:innerClearance_value");
+        peakOffset = ((x * 2) - threadDepth) - (getParameter("operation:innerClearance_value") * 2);
       }
       
       // initialDepth, double it for diameter mode
