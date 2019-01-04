@@ -653,13 +653,13 @@ function onCyclePoint(x, y, z) {
       var peakOffset = 0;
 
       if (getParameter("operation:turningMode") === "outer") {
-        peakOffset = -((getParameter("operation:outerClearance_value") * 2) - ((x * 2) + threadDepth));
+        peakOffset = -((getParameter("operation:outerClearance_value") * 2) - ((x * 2) + (threadDepth * 2)));
       } else {
-        peakOffset = ((x * 2) - threadDepth) - (getParameter("operation:innerClearance_value") * 2);
-      }
+        peakOffset = ((x * 2) - (threadDepth * 2)) - (getParameter("operation:innerClearance_value") * 2);
+      }  
       
-      // initialDepth, double it for diameter mode
-      var initialDepth = (getParameter("operation:numberOfStepdowns") == 1 ? threadDepth*0.9 : (threadDepth / getParameter("operation:numberOfStepdowns")) * 2);
+      // initialDepth
+      var initialDepth = (getParameter("operation:numberOfStepdowns") == 1 ? threadDepth*0.9 : (threadDepth / getParameter("operation:numberOfStepdowns")));
       // Infeed Mode:
       //   - constant: R1 (same depth for every pass)
       //   - reduced:  R2 (constant area)
